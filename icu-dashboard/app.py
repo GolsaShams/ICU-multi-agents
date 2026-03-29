@@ -24,6 +24,20 @@ if BASE_DIR not in sys.path:
 
 from init_db import DB_NAME, init_db  # noqa: E402
 
+# Configure Flask to serve the built Flutter web app
+STATIC_DIR = os.path.join(BASE_DIR, 'icu_flutter', 'build', 'web')
+app.static_folder = STATIC_DIR
+app.static_url_path = ''
+
+@app.route('/')
+def serve_flutter_index():
+    return app.send_static_file('index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    # For single-page apps (Flutter web), route everything to index.html
+    return app.send_static_file('index.html')
+
 
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -267,13 +281,13 @@ def post_alert():
     return jsonify({"status": "success"})
 
 
+with app.app_context():
+    init_db()
+
+# Start the real-time simulation in a background daemon thread
+sim_thread = threading.Thread(target=simulate_vitals, daemon=True)
+sim_thread.start()
+print("[OK] Real-time vitals simulation started (updates every 5s)")
+
 if __name__ == "__main__":
-    with app.app_context():
-        init_db()
-
-    # Start the real-time simulation in a background daemon thread
-    sim_thread = threading.Thread(target=simulate_vitals, daemon=True)
-    sim_thread.start()
-    print("[OK] Real-time vitals simulation started (updates every 5s)")
-
     app.run(debug=True, port=5000, use_reloader=False)
