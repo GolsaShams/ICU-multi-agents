@@ -1,0 +1,46 @@
+# Embedded repos
+flutter-sdk/
+icu-dashboard/.git/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.db
+*.sqlite3
+.env
+venv/
+.venv/
+
+# Flutter
+icu_flutter/.dart_tool/
+icu_flutter/.packages
+icu_flutter/build/
+icu_flutter/.flutter-plugins
+icu_flutter/.flutter-plugins-dependencies
+icu_flutter/.idea/
+icu_flutter/windows/flutter/ephemeral/
+icu_flutter/web/favicon.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Generated files
+ICU_Database_Report.xlsx
+ICU_MultiAgent_Presentation.pptx
+~$*
+
+# Large data files
+*.csv.gz
+*.csv
+
+# Node modules
+node_modules/
+icu-dashboard/node_modules/
