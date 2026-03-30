@@ -9,10 +9,6 @@ import threading
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
-app = Flask(__name__)
-CORS(app)
-
 # Ottawa timezone
 OTTAWA_TZ = ZoneInfo('America/Toronto')
 
@@ -26,8 +22,8 @@ from init_db import DB_NAME, init_db  # noqa: E402
 
 # Configure Flask to serve the built Flutter web app
 STATIC_DIR = os.path.join(BASE_DIR, 'icu_flutter', 'build', 'web')
-app.static_folder = STATIC_DIR
-app.static_url_path = ''
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
+CORS(app)
 
 @app.route('/')
 def serve_flutter_index():
