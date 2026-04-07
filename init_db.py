@@ -1,114 +1,73 @@
 import os
-import sqlite3
+import sys
 from datetime import datetime, timedelta
+from sqlalchemy import text
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = os.path.join(BASE_DIR, "icu_agents.db")
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from database import get_engine, TABLE_PATIENTS, TABLE_ALERTS, TABLE_BED_AVAILABILITY, TABLE_NURSE_ASSIGNMENTS
 
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    cursor.execute('DROP TABLE IF EXISTS patients')
-    cursor.execute('DROP TABLE IF EXISTS alerts')
-    cursor.execute('DROP TABLE IF EXISTS bed_availability')
-    cursor.execute('DROP TABLE IF EXISTS nurse_assignments')
-    
-    # Create unified patients table
-    cursor.execute('''
-        CREATE TABLE patients (
-            bed_id TEXT PRIMARY KEY,
-            hr INTEGER,
-            spo2 INTEGER,
-            temp REAL,
-            heart_rhythm TEXT,
-            status TEXT
-        )
-    ''')
-    
-    # Create alerts table
-    cursor.execute('''
-        CREATE TABLE alerts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            bed_id TEXT,
-            message TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Create bed availability table
-    cursor.execute('''
-        CREATE TABLE bed_availability (
-            bed_id TEXT PRIMARY KEY,
-            is_occupied INTEGER DEFAULT 0,
-            patient_name TEXT,
-            admission_date DATETIME,
-            expected_discharge DATETIME,
-            status TEXT DEFAULT 'Available',
-            last_updated DATETIME
-        )
-    ''')
-    
-    # Create nurse assignments table
-    cursor.execute('''
-        CREATE TABLE nurse_assignments (
-            nurse_id TEXT PRIMARY KEY,
-            nurse_name TEXT,
-            assigned_beds TEXT,
-            shift TEXT,
-            workload TEXT DEFAULT 'Normal',
-            last_updated DATETIME
-        )
-    ''')
-    
-    # Patient vitals samples
-    patients_samples = [
-        ('bed_01', 115, 87, 39.1, 'Sinus Tachycardia', 'Critical'),
-        ('bed_02', 72, 98, 36.6, 'Normal Sinus Rhythm', 'Stable'),
-        ('bed_03', 88, 84, 37.0, 'Normal Sinus Rhythm', 'Warning'),
-        ('bed_04', 120, 95, 38.8, 'Atrial Fibrillation', 'Critical'),
-        ('bed_05', 65, 97, 36.8, 'Normal Sinus Rhythm', 'Stable'),
-        ('bed_06', 102, 91, 37.9, 'Sinus Tachycardia', 'Warning'),
-        ('bed_08', 130, 82, 39.5, 'Ventricular Tachycardia', 'Critical'),
-        ('bed_09', 90, 96, 37.2, 'Normal Sinus Rhythm', 'Stable'),
-        ('bed_10', 110, 88, 38.4, 'Atrial Flutter', 'Critical'),
-    ]
-    cursor.executemany('INSERT INTO patients VALUES (?, ?, ?, ?, ?, ?)', patients_samples)
-    
-    # Bed availability samples (synced with patients)
-    now = datetime.now().isoformat()
-    patient_names = [
-        'John Smith', 'Maria Garcia', 'David Lee', 'Sarah Johnson',
-        'Ahmed Hassan', 'Emily Brown', None, 'Robert Chen',
-        'Lisa Wang', 'James Wilson'
-    ]
-    # Expected days until discharge for each bed (None for unoccupied)
-    discharge_days = [2, 5, 1, 3, 7, 4, None, 1, 6, 2]
-    bed_samples = []
-    for i in range(1, 11):
-        bed_id = f'bed_{i:02d}'
-        name = patient_names[i - 1]
-        is_occupied = 1 if name else 0
-        admission = (datetime.now() - timedelta(days=i, hours=i*3)).isoformat() if is_occupied else None
-        days_left = discharge_days[i - 1]
-        discharge = (datetime.now() + timedelta(days=days_left, hours=i*2)).isoformat() if (is_occupied and days_left) else None
-        status = 'Occupied' if is_occupied else 'Available'
-        bed_samples.append((bed_id, is_occupied, name, admission, discharge, status, now))
-    cursor.executemany('INSERT INTO bed_availability VALUES (?, ?, ?, ?, ?, ?, ?)', bed_samples)
-    
-    # Nurse assignment samples
-    nurse_samples = [
-        ('nurse_01', 'Alice Thompson', 'bed_01,bed_02', 'Day (07:00-19:00)', 'High', now),
-        ('nurse_02', 'Bob Martinez', 'bed_03,bed_04', 'Day (07:00-19:00)', 'High', now),
-        ('nurse_03', 'Carol White', 'bed_05,bed_06', 'Day (07:00-19:00)', 'Normal', now),
-        ('nurse_04', 'Daniel Kim', 'bed_07,bed_08', 'Night (19:00-07:00)', 'High', now),
-        ('nurse_05', 'Eva Nguyen', 'bed_09,bed_10', 'Night (19:00-07:00)', 'High', now),
-    ]
-    cursor.executemany('INSERT INTO nurse_assignments VALUES (?, ?, ?, ?, ?, ?)', nurse_samples)
-    
-    conn.commit()
-    conn.close()
-    print(f"Database '{DB_NAME}' initialized successfully.")
+    engine = get_engine()
+
+    # Insert sample data only if tables are empty
+    with engine.begin() as conn:
+        count = conn.execute(text(f'SELECT COUNT(*) FROM {TABLE_PATIENTS}')).scalar()
+        if count == 0:
+            patients_samples = [
+                ('bed_01', 115, 87, 39.1, 'Critical', 'Sinus Tachycardia'),
+                ('bed_02', 72, 98, 36.6, 'Stable', 'Normal Sinus Rhythm'),
+                ('bed_03', 88, 84, 37.0, 'Warning', 'Normal Sinus Rhythm'),
+                ('bed_04', 120, 95, 38.8, 'Critical', 'Atrial Fibrillation'),
+                ('bed_05', 65, 97, 36.8, 'Stable', 'Normal Sinus Rhythm'),
+                ('bed_06', 102, 91, 37.9, 'Warning', 'Sinus Tachycardia'),
+                ('bed_08', 130, 82, 39.5, 'Critical', 'Ventricular Tachycardia'),
+                ('bed_09', 90, 96, 37.2, 'Stable', 'Normal Sinus Rhythm'),
+                ('bed_10', 110, 88, 38.4, 'Critical', 'Atrial Flutter'),
+            ]
+            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            for p in patients_samples:
+                conn.execute(
+                    text(f'INSERT INTO {TABLE_PATIENTS} (bed_id, hr, spo2, temp, status, rhythm, last_updated) VALUES (:b, :h, :s, :t, :st, :r, :lu)'),
+                    {'b': p[0], 'h': p[1], 's': p[2], 't': p[3], 'st': p[4], 'r': p[5], 'lu': now}
+                )
+
+        count = conn.execute(text(f'SELECT COUNT(*) FROM {TABLE_BED_AVAILABILITY}')).scalar()
+        if count == 0:
+            patient_names = ['John Smith', 'Maria Garcia', 'David Lee', 'Sarah Johnson',
+                'Ahmed Hassan', 'Emily Brown', None, 'Robert Chen', 'Lisa Wang', 'James Wilson']
+            discharge_days = [2, 5, 1, 3, 7, 4, None, 1, 6, 2]
+            for i in range(1, 11):
+                bed_id = f'bed_{i:02d}'
+                name = patient_names[i - 1]
+                is_occupied = True if name else False
+                admission = (datetime.now() - timedelta(days=i, hours=i*3)).strftime('%Y-%m-%d %H:%M:%S') if is_occupied else None
+                days_left = discharge_days[i - 1]
+                discharge = (datetime.now() + timedelta(days=days_left, hours=i*2)).strftime('%Y-%m-%d %H:%M:%S') if (is_occupied and days_left) else None
+                status = 'Occupied' if is_occupied else 'Available'
+                conn.execute(
+                    text(f'INSERT INTO {TABLE_BED_AVAILABILITY} (bed_id, status, patient_name, admission_date, expected_discharge) VALUES (:a, :b, :c, :d, :e)'),
+                    {'a': bed_id, 'b': status, 'c': name, 'd': admission, 'e': discharge}
+                )
+
+        count = conn.execute(text(f'SELECT COUNT(*) FROM {TABLE_NURSE_ASSIGNMENTS}')).scalar()
+        if count == 0:
+            nurse_samples = [
+                ('nurse_01', 'Alice Thompson', 'Day', 'bed_01,bed_02', 'High'),
+                ('nurse_02', 'Bob Martinez', 'Day', 'bed_03,bed_04', 'High'),
+                ('nurse_03', 'Carol White', 'Day', 'bed_05,bed_06', 'Normal'),
+                ('nurse_04', 'Daniel Kim', 'Night', 'bed_07,bed_08', 'High'),
+                ('nurse_05', 'Eva Nguyen', 'Night', 'bed_09,bed_10', 'High'),
+            ]
+            for n in nurse_samples:
+                conn.execute(
+                    text(f'INSERT INTO {TABLE_NURSE_ASSIGNMENTS} (nurse_id, nurse_name, shift, assigned_beds, workload) VALUES (:a, :b, :c, :d, :e)'),
+                    {'a': n[0], 'b': n[1], 'c': n[2], 'd': n[3], 'e': n[4]}
+                )
+
+    print("Database initialized successfully.")
 
 if __name__ == "__main__":
     init_db()

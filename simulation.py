@@ -1,27 +1,31 @@
-import sqlite3
+import os
+import sys
 import time
 import requests
-import pandas as pd
+from sqlalchemy import text
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from database import get_engine, TABLE_PATIENTS
+
 
 def run_agent():
+    engine = get_engine()
     print("--- Monitoring Agent Active ---")
     while True:
-        conn = sqlite3.connect('icu_database.db')
-        # We query the real vitals you just imported
         try:
-            df = pd.read_sql("SELECT * FROM mimic_vitals LIMIT 10", conn)
-            for _, row in df.iterrows():
-                val = row['valuenum']
-                # If a high value is found, send it to the Blackboard
-                if val > 100:
-                    alert = {"bed_id": "bed_01", "alert": f"High clinical value detected: {val}"}
+            with engine.connect() as conn:
+                patients = [dict(r) for r in conn.execute(text(f'SELECT * FROM {TABLE_PATIENTS} LIMIT 10')).mappings().all()]
+            for p in patients:
+                if p.get('hr') and p['hr'] > 100:
+                    alert = {"bed_id": p['bed_id'], "alert": f"High clinical value detected: HR={p['hr']}"}
                     requests.post("http://127.0.0.1:5000/post_alert", json=alert)
             print("Checked vitals... posting alerts if found.")
         except Exception as e:
             print(f"Waiting for data... {e}")
-        
-        conn.close()
-        time.sleep(5) # Check every 5 seconds
+        time.sleep(5)
 
 if __name__ == "__main__":
     run_agent()

@@ -66408,7 +66408,7 @@ mc(){var s=0,r=A.S(t.H),q,p=2,o=[],n=this,m,l,k,j,i
 var $async$mc=A.T(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:p=4
 s=7
-return A.U(A.amn(A.fb("http://127.0.0.1:5000/view")),$async$mc)
+return A.U(A.amn(A.fb("https://icu-multi-agents-dashboard.onrender.com/view")),$async$mc)
 case 7:m=b
 if(m.b!==200){k=A.cE("Backend error: "+m.b)
 throw A.f(k)}k=m
@@ -66543,7 +66543,7 @@ return new A.h_(s,r,q,p)},
 $S:437}
 A.a6y.prototype={
 $0(){var s=this.a
-s.x="Cannot reach backend at http://127.0.0.1:5000/view.\nMake sure Flask is running."
+s.x="Cannot reach backend at https://icu-multi-agents-dashboard.onrender.com/view.\nMake sure Flask is running."
 s.w=!1},
 $S:0}
 A.a6m.prototype={
@@ -66674,7 +66674,7 @@ this.aC()},
 md(){var s=0,r=A.S(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g
 var $async$md=A.T(function(a,b){if(a===1){o.push(b)
 s=p}for(;;)switch(s){case 0:p=4
-m="http://127.0.0.1:5000/patient/"+n.a.c
+m="https://icu-multi-agents-dashboard.onrender.com/patient/"+n.a.c
 s=7
 return A.U(A.amn(A.fb(m)),$async$md)
 case 7:l=b

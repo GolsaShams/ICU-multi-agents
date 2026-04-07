@@ -160,7 +160,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
-  static const String apiUrl = 'http://127.0.0.1:5000/view';
+  static const String apiUrl = 'https://icu-multi-agents-dashboard.onrender.com/view';
 
   List<Patient> patients = [];
   List<AlertItem> alerts = [];
@@ -1071,7 +1071,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
 
   Future<void> _fetchDetail() async {
     try {
-      final url = 'http://127.0.0.1:5000/patient/${widget.bedId}';
+      final url = 'https://icu-multi-agents-dashboard.onrender.com/patient/${widget.bedId}';
       final response = await http.get(Uri.parse(url));
       if (response.statusCode != 200) {
         throw Exception('Server returned ${response.statusCode}');
